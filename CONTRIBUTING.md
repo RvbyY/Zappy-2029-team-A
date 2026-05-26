@@ -9,7 +9,6 @@
 
 ---
 
-# Branch strategy
 
 # Communication among the team 
 
@@ -18,6 +17,8 @@ Communication between team members takes place on a Discord chat
 > [Click here to join the chat](https://discord.gg/6gcZH3TT)
 
 ---
+
+# Branch strategy
 
 > All development happens on short-lived branches named after the feature or fix. When
 complete, the branch is merged into main via a pull request. main is always in a deployable
