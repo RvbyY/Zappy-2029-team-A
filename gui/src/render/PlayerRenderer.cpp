@@ -45,9 +45,9 @@ void appendPlayerTriangle(
     const float centerY = static_cast<float>(y) + 0.5f;
     const float scale = levelScale(level);
 
-    const float front = 0.32f * scale;
-    const float back = 0.22f * scale;
-    const float halfWidth = 0.22f * scale;
+    const float front = 0.24f * scale;
+    const float back = 0.16f * scale;
+    const float halfWidth = 0.20f * scale;
 
     switch (orientation) {
         case 1:
