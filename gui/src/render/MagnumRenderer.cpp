@@ -41,12 +41,38 @@ std::vector<Vertex> buildGridVertices(int width, int height)
     return vertices;
 }
 
-void appendFoodMarker(std::vector<Vertex> &vertices, int x, int y)
+constexpr int ResourceCount = 7;
+
+struct ResourceMarkerStyle {
+    Magnum::Color4 color;
+    float offsetX;
+    float offsetY;
+};
+
+const std::array<ResourceMarkerStyle, ResourceCount> ResourceMarkerStyles = {{
+    {Magnum::Color4{0.35f, 0.95f, 0.35f, 1.0f}, 0.18f, 0.18f}, // food
+    {Magnum::Color4{0.40f, 0.75f, 1.00f, 1.0f}, 0.42f, 0.18f}, // linemate
+    {Magnum::Color4{0.85f, 0.65f, 1.00f, 1.0f}, 0.66f, 0.18f}, // deraumere
+    {Magnum::Color4{1.00f, 0.85f, 0.35f, 1.0f}, 0.18f, 0.42f}, // sibur
+    {Magnum::Color4{1.00f, 0.55f, 0.35f, 1.0f}, 0.42f, 0.42f}, // mendiane
+    {Magnum::Color4{0.95f, 0.35f, 0.75f, 1.0f}, 0.66f, 0.42f}, // phiras
+    {Magnum::Color4{0.90f, 0.90f, 0.95f, 1.0f}, 0.42f, 0.66f}, // thystame
+}};
+
+void appendSquareMarker(
+    std::vector<Vertex> &vertices,
+    int tileX,
+    int tileY,
+    float offsetX,
+    float offsetY
+)
 {
-    const float left = static_cast<float>(x) + 0.35f;
-    const float right = static_cast<float>(x) + 0.65f;
-    const float bottom = static_cast<float>(y) + 0.35f;
-    const float top = static_cast<float>(y) + 0.65f;
+    constexpr float MarkerSize = 0.16f;
+
+    const float left = static_cast<float>(tileX) + offsetX;
+    const float right = left + MarkerSize;
+    const float bottom = static_cast<float>(tileY) + offsetY;
+    const float top = bottom + MarkerSize;
 
     vertices.push_back({{left, bottom}});
     vertices.push_back({{right, bottom}});
@@ -57,9 +83,9 @@ void appendFoodMarker(std::vector<Vertex> &vertices, int x, int y)
     vertices.push_back({{left, top}});
 }
 
-std::vector<Vertex> buildFoodVertices(const GameState &state)
+std::array<std::vector<Vertex>, ResourceCount> buildResourceVertices(const GameState &state)
 {
-    std::vector<Vertex> vertices;
+    std::array<std::vector<Vertex>, ResourceCount> verticesByResource;
 
     for (int y = 0; y < state.height(); ++y) {
         for (int x = 0; x < state.width(); ++x) {
@@ -70,12 +96,24 @@ std::vector<Vertex> buildFoodVertices(const GameState &state)
 
             const Tile::ResourceArray &resources = tile->resources();
 
-            if (resources[0] > 0)
-                appendFoodMarker(vertices, x, y);
+            for (int resourceId = 0; resourceId < ResourceCount; ++resourceId) {
+                if (resources[resourceId] <= 0)
+                    continue;
+
+                const ResourceMarkerStyle &style = ResourceMarkerStyles[resourceId];
+
+                appendSquareMarker(
+                    verticesByResource[resourceId],
+                    x,
+                    y,
+                    style.offsetX,
+                    style.offsetY
+                );
+            }
         }
     }
 
-    return vertices;
+    return verticesByResource;
 }
 
 Magnum::Matrix3 buildMapProjection(int width, int height)
@@ -185,15 +223,20 @@ void MagnumRenderer::drawTileResources(const GameState &state)
     if (width <= 0 || height <= 0)
         return;
 
-    const std::vector<Vertex> vertices = buildFoodVertices(state);
+    const std::array<std::vector<Vertex>, ResourceCount> verticesByResource =
+        buildResourceVertices(state);
 
-    if (vertices.empty())
-        return;
+    for (int resourceId = 0; resourceId < ResourceCount; ++resourceId) {
+        const std::vector<Vertex> &vertices = verticesByResource[resourceId];
 
-    Magnum::GL::Mesh mesh = buildMesh(Magnum::GL::MeshPrimitive::Triangles, vertices);
+        if (vertices.empty())
+            continue;
 
-    _shader
-        .setColor(Magnum::Color4{0.35f, 0.95f, 0.35f, 1.0f})
-        .setTransformationProjectionMatrix(buildMapProjection(width, height))
-        .draw(mesh);
+        Magnum::GL::Mesh mesh = buildMesh(Magnum::GL::MeshPrimitive::Triangles, vertices);
+
+        _shader
+            .setColor(ResourceMarkerStyles[resourceId].color)
+            .setTransformationProjectionMatrix(buildMapProjection(width, height))
+            .draw(mesh);
+    }
 }
