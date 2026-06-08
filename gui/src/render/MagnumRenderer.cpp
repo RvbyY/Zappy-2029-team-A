@@ -154,6 +154,66 @@ Magnum::GL::Mesh buildMesh(
     return mesh;
 }
 
+void appendPlayerTriangle(
+    std::vector<Vertex> &vertices,
+    int x,
+    int y,
+    int orientation
+)
+{
+    const float centerX = static_cast<float>(x) + 0.5f;
+    const float centerY = static_cast<float>(y) + 0.5f;
+
+    constexpr float Front = 0.32f;
+    constexpr float Back = 0.22f;
+    constexpr float HalfWidth = 0.22f;
+
+    switch (orientation) {
+        case 1: // north
+            vertices.push_back({{centerX, centerY + Front}});
+            vertices.push_back({{centerX - HalfWidth, centerY - Back}});
+            vertices.push_back({{centerX + HalfWidth, centerY - Back}});
+            break;
+        case 2: // east
+            vertices.push_back({{centerX + Front, centerY}});
+            vertices.push_back({{centerX - Back, centerY - HalfWidth}});
+            vertices.push_back({{centerX - Back, centerY + HalfWidth}});
+            break;
+        case 3: // south
+            vertices.push_back({{centerX, centerY - Front}});
+            vertices.push_back({{centerX + HalfWidth, centerY + Back}});
+            vertices.push_back({{centerX - HalfWidth, centerY + Back}});
+            break;
+        case 4: // west
+            vertices.push_back({{centerX - Front, centerY}});
+            vertices.push_back({{centerX + Back, centerY + HalfWidth}});
+            vertices.push_back({{centerX + Back, centerY - HalfWidth}});
+            break;
+        default:
+            vertices.push_back({{centerX, centerY + Front}});
+            vertices.push_back({{centerX - HalfWidth, centerY - Back}});
+            vertices.push_back({{centerX + HalfWidth, centerY - Back}});
+            break;
+    }
+}
+
+std::vector<Vertex> buildPlayerVertices(const GameState &state)
+{
+    std::vector<Vertex> vertices;
+
+    for (const auto &[id, player] : state.players()) {
+        (void)id;
+        appendPlayerTriangle(
+            vertices,
+            player.x(),
+            player.y(),
+            player.orientation()
+        );
+    }
+
+    return vertices;
+}
+
 } // namespace
 
 MagnumRenderer::MagnumRenderer(const Arguments &arguments)
@@ -193,6 +253,7 @@ void MagnumRenderer::drawEvent()
     if (_state != nullptr && _state->isReady()) {
         drawMapGrid(*_state);
         drawTileResources(*_state);
+        drawPlayers(*_state);
     }
 
     swapBuffers();
@@ -239,4 +300,25 @@ void MagnumRenderer::drawTileResources(const GameState &state)
             .setTransformationProjectionMatrix(buildMapProjection(width, height))
             .draw(mesh);
     }
+}
+
+void MagnumRenderer::drawPlayers(const GameState &state)
+{
+    const int width = state.width();
+    const int height = state.height();
+
+    if (width <= 0 || height <= 0)
+        return;
+
+    const std::vector<Vertex> vertices = buildPlayerVertices(state);
+
+    if (vertices.empty())
+        return;
+
+    Magnum::GL::Mesh mesh = buildMesh(Magnum::GL::MeshPrimitive::Triangles, vertices);
+
+    _shader
+        .setColor(Magnum::Color4{0.20f, 0.45f, 1.00f, 1.0f})
+        .setTransformationProjectionMatrix(buildMapProjection(width, height))
+        .draw(mesh);
 }
