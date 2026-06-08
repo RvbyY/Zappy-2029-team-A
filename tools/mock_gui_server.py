@@ -11,9 +11,22 @@ messages = [
     "sgt 100\n",
     "tna teamA\n",
     "tna teamB\n",
-    "bct 0 0 1 0 0 0 0 0 0\n",
-    "bct 1 0 0 1 0 0 0 0 0\n",
-    "bct 2 0 0 0 1 0 0 0 0\n",
+
+    # Single-resource tiles on bottom row
+    "bct 0 0 1 0 0 0 0 0 0\n",  # food
+    "bct 1 0 0 1 0 0 0 0 0\n",  # linemate
+    "bct 2 0 0 0 1 0 0 0 0\n",  # deraumere
+    "bct 3 0 0 0 0 1 0 0 0\n",  # sibur
+    "bct 4 0 0 0 0 0 1 0 0\n",  # mendiane
+    "bct 5 0 0 0 0 0 0 1 0\n",  # phiras
+    "bct 6 0 0 0 0 0 0 0 1\n",  # thystame
+
+    # All resources on one tile
+    "bct 1 2 1 1 1 1 1 1 1\n",
+
+    # Multiple quantities, should still draw one marker per resource type for now
+    "bct 4 4 5 2 3 1 4 2 1\n",
+
     "pnw #1 2 3 1 1 teamA\n",
     "pnw #2 5 6 2 2 teamB\n",
     "enw #1 #1 4 4\n",
