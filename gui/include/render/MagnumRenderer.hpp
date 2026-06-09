@@ -8,6 +8,7 @@
 #include "state/GameState.hpp"
 #include "render/IncantationRenderer.hpp"
 #include "render/BroadcastRenderer.hpp"
+#include "render/ExpulsionRenderer.hpp"
 
 #include <Magnum/Platform/Sdl2Application.h>
 #include <Magnum/Shaders/FlatGL.h>
@@ -34,6 +35,7 @@ private:
     zappy::render::ResourceRenderer _resourceRenderer;
     zappy::render::IncantationRenderer _incantationRenderer;
     zappy::render::BroadcastRenderer _broadcastRenderer;
+    zappy::render::ExpulsionRenderer _expulsionRenderer;
     zappy::render::EggRenderer _eggRenderer;
     zappy::render::PlayerRenderer _playerRenderer;
 };

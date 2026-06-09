@@ -12,7 +12,8 @@ GameState::GameState()
       _players(),
       _eggs(),
       _incantations(),
-      _broadcasts()
+      _broadcasts(),
+      _expulsions()
 {
 }
 
@@ -118,6 +119,17 @@ bool GameState::removePlayer(int id)
             }
         ),
         _broadcasts.end()
+    );
+
+    _expulsions.erase(
+        std::remove_if(
+            _expulsions.begin(),
+            _expulsions.end(),
+            [id](const Expulsion &expulsion) {
+                return expulsion.belongsToPlayer(id);
+            }
+        ),
+        _expulsions.end()
     );
 
     return true;
@@ -309,4 +321,36 @@ void GameState::updateVisualEffects()
         ),
         _broadcasts.end()
     );
+
+    for (Expulsion &expulsion : _expulsions)
+        expulsion.tick();
+
+    _expulsions.erase(
+        std::remove_if(
+            _expulsions.begin(),
+            _expulsions.end(),
+            [](const Expulsion &expulsion) {
+                return expulsion.isExpired();
+            }
+        ),
+        _expulsions.end()
+    );
+}
+
+bool GameState::addExpulsion(int playerId)
+{
+    auto it = _players.find(playerId);
+
+    if (it == _players.end())
+        return false;
+
+    const Player &player = it->second;
+
+    _expulsions.emplace_back(playerId, player.x(), player.y());
+    return true;
+}
+
+const std::vector<Expulsion> &GameState::expulsions() const
+{
+    return _expulsions;
 }

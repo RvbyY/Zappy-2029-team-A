@@ -5,6 +5,7 @@
 #include "Tile.hpp"
 #include "Broadcast.hpp"
 #include "Incantation.hpp"
+#include "Expulsion.hpp"
 
 #include <cstddef>
 #include <optional>
@@ -55,6 +56,10 @@ public:
     bool addBroadcast(int playerId, const std::string &message);
     const std::vector<Broadcast> &broadcasts() const;
     void clearBroadcasts();
+
+    bool addExpulsion(int playerId);
+    const std::vector<Expulsion> &expulsions() const;
+
     void updateVisualEffects();
 
 private:
@@ -69,6 +74,7 @@ private:
     std::unordered_map<int, Egg> _eggs;
     std::vector<Incantation> _incantations;
     std::vector<Broadcast> _broadcasts;
+    std::vector<Expulsion> _expulsions;
 
     bool isValidSize(int width, int height) const;
     bool isValidPosition(int x, int y) const;

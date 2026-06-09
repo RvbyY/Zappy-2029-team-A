@@ -64,8 +64,8 @@ def scenario_messages():
 
         # Egg disappears
         "ebo #1\n",
-
         # Player #2 disappears
+        "pex #1\n",
         "pdi #2\n",
 
         # Player #1 broadcasts again after other events
