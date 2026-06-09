@@ -216,9 +216,10 @@ bool GuiEventApplier::applyEvent(const PlayerCollectResourceEvent &event)
 bool GuiEventApplier::applyEvent(const PlayerExpulsionEvent &event)
 {
     std::cout << "event: player #" << event.playerId
-              << " expelled nearby players"
+              << " expelled players"
               << std::endl;
-    return true;
+
+    return _state.addExpulsion(event.playerId);
 }
 
 bool GuiEventApplier::applyEvent(const PlayerBroadcastEvent &event)

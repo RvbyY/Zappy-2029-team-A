@@ -20,6 +20,7 @@ MagnumRenderer::MagnumRenderer(const Arguments &arguments)
       _resourceRenderer(_shader),
       _incantationRenderer(_shader),
       _broadcastRenderer(_shader),
+      _expulsionRenderer(_shader),
       _eggRenderer(_shader),
       _playerRenderer(_shader)
 {
@@ -54,6 +55,7 @@ void MagnumRenderer::drawEvent()
         _resourceRenderer.draw(*_state, projection);
         _incantationRenderer.draw(*_state, projection);
         _broadcastRenderer.draw(*_state, projection);
+        _expulsionRenderer.draw(*_state, projection);
         _eggRenderer.draw(*_state, projection);
         _playerRenderer.draw(*_state, projection);
     }
