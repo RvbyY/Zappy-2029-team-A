@@ -72,7 +72,7 @@ class Agent():
         self.t_step = (self.t_step + 1) % 4
         if self.t_step == 0 and len(self.memory.memory) > self.minibatch:
             experiences = self.memory.sample(self.minibatch)
-            self.learn(experiences, self.gamma)
+            self.compute_loss(experiences)
 
     def get_action(self, state, epsilon):
         state = torch.from_numpy(state).float().unsqueeze(0)
