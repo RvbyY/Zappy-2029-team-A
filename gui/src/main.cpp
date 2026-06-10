@@ -1,5 +1,5 @@
-#include "GuiArgs.hpp"
-#include "GuiClient.hpp"
+#include "client/GuiArgs.hpp"
+#include "client/GuiClient.hpp"
 
 #include <iostream>
 #include <stdexcept>
@@ -8,8 +8,8 @@ int main(int argc, char **argv)
 {
     try {
         GuiArgs args = parseGuiArgs(argc, argv);
-        GuiClient client(args.host, args.port);
-
+        GuiClient client(args.host, args.port, argc, argv);
+        
         if (!client.connect())
             return 84;
 

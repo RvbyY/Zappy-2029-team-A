@@ -1,0 +1,426 @@
+#include "protocol/GuiProtocolDecoder.hpp"
+
+#include "state/Resource.hpp"
+
+#include <sstream>
+#include <vector>
+
+GuiProtocolDecoder::GuiProtocolDecoder()
+    : _decoders()
+{
+    registerDecoders();
+}
+
+void GuiProtocolDecoder::registerDecoders()
+{
+    _decoders["msz"] = &GuiProtocolDecoder::decodeMapSize;
+    _decoders["bct"] = &GuiProtocolDecoder::decodeTileContent;
+    _decoders["tna"] = &GuiProtocolDecoder::decodeTeamName;
+    _decoders["sgt"] = &GuiProtocolDecoder::decodeTimeUnit;
+    _decoders["seg"] = &GuiProtocolDecoder::decodeEndGame;
+    _decoders["smg"] = &GuiProtocolDecoder::decodeServerMessage;
+
+    _decoders["pnw"] = &GuiProtocolDecoder::decodePlayerNew;
+    _decoders["ppo"] = &GuiProtocolDecoder::decodePlayerPosition;
+    _decoders["plv"] = &GuiProtocolDecoder::decodePlayerLevel;
+    _decoders["pin"] = &GuiProtocolDecoder::decodePlayerInventory;
+    _decoders["pdi"] = &GuiProtocolDecoder::decodePlayerDeath;
+
+    _decoders["enw"] = &GuiProtocolDecoder::decodeEggNew;
+    _decoders["ebo"] = &GuiProtocolDecoder::decodeEggHatch;
+    _decoders["edi"] = &GuiProtocolDecoder::decodeEggDeath;
+    _decoders["pfk"] = &GuiProtocolDecoder::decodePlayerFork;
+
+    _decoders["pdr"] = &GuiProtocolDecoder::decodePlayerDropResource;
+    _decoders["pgt"] = &GuiProtocolDecoder::decodePlayerCollectResource;
+
+    _decoders["pex"] = &GuiProtocolDecoder::decodePlayerExpulsion;
+    _decoders["pbc"] = &GuiProtocolDecoder::decodePlayerBroadcast;
+
+    _decoders["pic"] = &GuiProtocolDecoder::decodeIncantationStart;
+    _decoders["pie"] = &GuiProtocolDecoder::decodeIncantationEnd;
+
+    _decoders["sst"] = &GuiProtocolDecoder::decodeTimeUnit;
+    _decoders["suc"] = &GuiProtocolDecoder::decodeUnknownCommand;
+    _decoders["sbp"] = &GuiProtocolDecoder::decodeBadParameter;
+}
+
+std::optional<GuiProtocolEvent> GuiProtocolDecoder::decode(const ProtocolCommand &command) const
+{
+    const auto it = _decoders.find(command.name());
+
+    if (it == _decoders.end())
+        return std::nullopt;
+
+    return (this->*(it->second))(command);
+}
+
+std::optional<GuiProtocolEvent> GuiProtocolDecoder::decodeMapSize(const ProtocolCommand &command) const
+{
+    if (!command.hasArgCount(2))
+        return std::nullopt;
+
+    const auto width = command.intArg(0);
+    const auto height = command.intArg(1);
+
+    if (!width || !height)
+        return std::nullopt;
+
+    return MapSizeEvent{*width, *height};
+}
+
+std::optional<GuiProtocolEvent> GuiProtocolDecoder::decodeTileContent(const ProtocolCommand &command) const
+{
+    if (!command.hasArgCount(9))
+        return std::nullopt;
+
+    const auto x = command.intArg(0);
+    const auto y = command.intArg(1);
+    const auto resources = parseTileResources(command, 2);
+
+    if (!x || !y || !resources)
+        return std::nullopt;
+
+    return TileContentEvent{*x, *y, *resources};
+}
+
+std::optional<GuiProtocolEvent> GuiProtocolDecoder::decodeTeamName(const ProtocolCommand &command) const
+{
+    if (!command.hasArgCount(1))
+        return std::nullopt;
+
+    const auto name = command.arg(0);
+
+    if (!name)
+        return std::nullopt;
+
+    return TeamNameEvent{*name};
+}
+
+std::optional<GuiProtocolEvent> GuiProtocolDecoder::decodeTimeUnit(const ProtocolCommand &command) const
+{
+    if (!command.hasArgCount(1))
+        return std::nullopt;
+
+    const auto timeUnit = command.intArg(0);
+
+    if (!timeUnit)
+        return std::nullopt;
+
+    return TimeUnitEvent{*timeUnit};
+}
+
+std::optional<GuiProtocolEvent> GuiProtocolDecoder::decodeEndGame(const ProtocolCommand &command) const
+{
+    if (!command.hasArgCount(1))
+        return std::nullopt;
+
+    const auto teamName = command.arg(0);
+
+    if (!teamName)
+        return std::nullopt;
+
+    return EndGameEvent{*teamName};
+}
+
+std::optional<GuiProtocolEvent> GuiProtocolDecoder::decodeServerMessage(const ProtocolCommand &command) const
+{
+    std::ostringstream message;
+
+    for (std::size_t i = 0; i < command.args().size(); ++i) {
+        if (i != 0)
+            message << " ";
+        message << command.args()[i];
+    }
+
+    return ServerMessageEvent{message.str()};
+}
+
+std::optional<GuiProtocolEvent> GuiProtocolDecoder::decodePlayerNew(const ProtocolCommand &command) const
+{
+    if (!command.hasArgCount(6))
+        return std::nullopt;
+
+    const auto id = command.idArg(0);
+    const auto x = command.intArg(1);
+    const auto y = command.intArg(2);
+    const auto orientation = command.intArg(3);
+    const auto level = command.intArg(4);
+    const auto teamName = command.arg(5);
+
+    if (!id || !x || !y || !orientation || !level || !teamName)
+        return std::nullopt;
+
+    return PlayerNewEvent{*id, *x, *y, *orientation, *level, *teamName};
+}
+
+std::optional<GuiProtocolEvent> GuiProtocolDecoder::decodePlayerPosition(const ProtocolCommand &command) const
+{
+    if (!command.hasArgCount(4))
+        return std::nullopt;
+
+    const auto id = command.idArg(0);
+    const auto x = command.intArg(1);
+    const auto y = command.intArg(2);
+    const auto orientation = command.intArg(3);
+
+    if (!id || !x || !y || !orientation)
+        return std::nullopt;
+
+    return PlayerPositionEvent{*id, *x, *y, *orientation};
+}
+
+std::optional<GuiProtocolEvent> GuiProtocolDecoder::decodePlayerLevel(const ProtocolCommand &command) const
+{
+    if (!command.hasArgCount(2))
+        return std::nullopt;
+
+    const auto id = command.idArg(0);
+    const auto level = command.intArg(1);
+
+    if (!id || !level)
+        return std::nullopt;
+
+    return PlayerLevelEvent{*id, *level};
+}
+
+std::optional<GuiProtocolEvent> GuiProtocolDecoder::decodePlayerInventory(const ProtocolCommand &command) const
+{
+    if (!command.hasArgCount(10))
+        return std::nullopt;
+
+    const auto id = command.idArg(0);
+    const auto x = command.intArg(1);
+    const auto y = command.intArg(2);
+    const auto inventory = parsePlayerInventory(command, 3);
+
+    if (!id || !x || !y || !inventory)
+        return std::nullopt;
+
+    return PlayerInventoryEvent{*id, *x, *y, *inventory};
+}
+
+std::optional<GuiProtocolEvent> GuiProtocolDecoder::decodePlayerDeath(const ProtocolCommand &command) const
+{
+    if (!command.hasArgCount(1))
+        return std::nullopt;
+
+    const auto id = command.idArg(0);
+
+    if (!id)
+        return std::nullopt;
+
+    return PlayerDeathEvent{*id};
+}
+
+std::optional<Tile::ResourceArray> GuiProtocolDecoder::parseTileResources(
+    const ProtocolCommand &command,
+    std::size_t startIndex
+) const
+{
+    Tile::ResourceArray resources{};
+
+    for (std::size_t i = 0; i < Resource::COUNT; ++i) {
+        const auto quantity = command.intArg(startIndex + i);
+
+        if (!quantity)
+            return std::nullopt;
+
+        resources[i] = *quantity;
+    }
+
+    return resources;
+}
+
+std::optional<Player::Inventory> GuiProtocolDecoder::parsePlayerInventory(
+    const ProtocolCommand &command,
+    std::size_t startIndex
+) const
+{
+    Player::Inventory inventory{};
+
+    for (std::size_t i = 0; i < Resource::COUNT; ++i) {
+        const auto quantity = command.intArg(startIndex + i);
+
+        if (!quantity)
+            return std::nullopt;
+
+        inventory[i] = *quantity;
+    }
+
+    return inventory;
+}
+
+std::optional<GuiProtocolEvent> GuiProtocolDecoder::decodeEggNew(const ProtocolCommand &command) const
+{
+    if (!command.hasArgCount(4))
+        return std::nullopt;
+
+    const auto id = command.idArg(0);
+    const auto playerId = command.idArg(1);
+    const auto x = command.intArg(2);
+    const auto y = command.intArg(3);
+
+    if (!id || !playerId || !x || !y)
+        return std::nullopt;
+
+    return EggNewEvent{*id, *playerId, *x, *y};
+}
+
+std::optional<GuiProtocolEvent> GuiProtocolDecoder::decodeEggHatch(const ProtocolCommand &command) const
+{
+    if (!command.hasArgCount(1))
+        return std::nullopt;
+
+    const auto id = command.idArg(0);
+
+    if (!id)
+        return std::nullopt;
+
+    return EggHatchEvent{*id};
+}
+
+std::optional<GuiProtocolEvent> GuiProtocolDecoder::decodeEggDeath(const ProtocolCommand &command) const
+{
+    if (!command.hasArgCount(1))
+        return std::nullopt;
+
+    const auto id = command.idArg(0);
+
+    if (!id)
+        return std::nullopt;
+
+    return EggDeathEvent{*id};
+}
+
+std::optional<GuiProtocolEvent> GuiProtocolDecoder::decodePlayerFork(const ProtocolCommand &command) const
+{
+    if (!command.hasArgCount(1))
+        return std::nullopt;
+
+    const auto playerId = command.idArg(0);
+
+    if (!playerId)
+        return std::nullopt;
+
+    return PlayerForkEvent{*playerId};
+}
+
+std::optional<GuiProtocolEvent> GuiProtocolDecoder::decodePlayerDropResource(const ProtocolCommand &command) const
+{
+    if (!command.hasArgCount(2))
+        return std::nullopt;
+
+    const auto playerId = command.idArg(0);
+    const auto resourceId = command.intArg(1);
+
+    if (!playerId || !resourceId)
+        return std::nullopt;
+
+    return PlayerDropResourceEvent{*playerId, *resourceId};
+}
+
+std::optional<GuiProtocolEvent> GuiProtocolDecoder::decodePlayerCollectResource(const ProtocolCommand &command) const
+{
+    if (!command.hasArgCount(2))
+        return std::nullopt;
+
+    const auto playerId = command.idArg(0);
+    const auto resourceId = command.intArg(1);
+
+    if (!playerId || !resourceId)
+        return std::nullopt;
+
+    return PlayerCollectResourceEvent{*playerId, *resourceId};
+}
+
+std::optional<GuiProtocolEvent> GuiProtocolDecoder::decodePlayerExpulsion(const ProtocolCommand &command) const
+{
+    if (!command.hasArgCount(1))
+        return std::nullopt;
+
+    const auto playerId = command.idArg(0);
+
+    if (!playerId)
+        return std::nullopt;
+
+    return PlayerExpulsionEvent{*playerId};
+}
+
+std::optional<GuiProtocolEvent> GuiProtocolDecoder::decodePlayerBroadcast(const ProtocolCommand &command) const
+{
+    if (command.args().size() < 2)
+        return std::nullopt;
+
+    const auto playerId = command.idArg(0);
+
+    if (!playerId)
+        return std::nullopt;
+
+    std::ostringstream message;
+
+    for (std::size_t i = 1; i < command.args().size(); ++i) {
+        if (i != 1)
+            message << " ";
+        message << command.args()[i];
+    }
+
+    return PlayerBroadcastEvent{*playerId, message.str()};
+}
+
+std::optional<GuiProtocolEvent> GuiProtocolDecoder::decodeIncantationStart(const ProtocolCommand &command) const
+{
+    if (command.args().size() < 4)
+        return std::nullopt;
+
+    const auto x = command.intArg(0);
+    const auto y = command.intArg(1);
+    const auto level = command.intArg(2);
+
+    if (!x || !y || !level)
+        return std::nullopt;
+
+    std::vector<int> playerIds;
+
+    for (std::size_t i = 3; i < command.args().size(); ++i) {
+        const auto playerId = command.idArg(i);
+
+        if (!playerId)
+            return std::nullopt;
+
+        playerIds.push_back(*playerId);
+    }
+
+    return IncantationStartEvent{*x, *y, *level, playerIds};
+}
+
+std::optional<GuiProtocolEvent> GuiProtocolDecoder::decodeIncantationEnd(const ProtocolCommand &command) const
+{
+    if (!command.hasArgCount(3))
+        return std::nullopt;
+
+    const auto x = command.intArg(0);
+    const auto y = command.intArg(1);
+    const auto result = command.intArg(2);
+
+    if (!x || !y || !result)
+        return std::nullopt;
+
+    return IncantationEndEvent{*x, *y, *result};
+}
+
+std::optional<GuiProtocolEvent> GuiProtocolDecoder::decodeUnknownCommand(const ProtocolCommand &command) const
+{
+    if (!command.hasArgCount(0))
+        return std::nullopt;
+
+    return UnknownCommandEvent{};
+}
+
+std::optional<GuiProtocolEvent> GuiProtocolDecoder::decodeBadParameter(const ProtocolCommand &command) const
+{
+    if (!command.hasArgCount(0))
+        return std::nullopt;
+
+    return BadParameterEvent{};
+}
