@@ -8,6 +8,7 @@
 use crate::utils::ServerParams;
 use crate::utils::Server;
 use crate::handle_client;
+use crate::utils::World;
 
 use std::net::SocketAddr;
 use mio::net::TcpListener;
@@ -20,7 +21,7 @@ pub fn start_server(params: ServerParams)
 {
     let mut poll = Poll::new().unwrap();
     let mut events = Events::with_capacity(128);
-    let mut server = Server { clients: HashMap::new(), params: params.clone() };
+    let mut server = Server { clients: HashMap::new(), params: params.clone(), world: World {tiles: Vec::new(),}, };
 
     let mut next_token = 1;
 

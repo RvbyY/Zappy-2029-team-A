@@ -69,6 +69,7 @@ fn handle_handshake(token: Token, server: &mut Server, team: String)
             client.player = Some(utils::Player {
                 x: rand_x,
                 y: rand_y,
+                direction: utils::Direction::N,
                 level: 1,
                 food: 10,
                 inventory: std::collections::HashMap::new(),

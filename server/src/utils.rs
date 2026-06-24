@@ -11,6 +11,7 @@ use mio::net::TcpStream;
 use std::io::Write;
 
 #[derive(Clone)]
+
 pub struct ServerParams
 {
     pub port: u16,
@@ -29,19 +30,38 @@ pub struct Client
     pub player: Option<Player>,
 }
 
+pub struct Server
+{
+    pub clients: HashMap<Token, Client>,
+    pub params: ServerParams,
+    pub world: World,
+}
+
 pub struct Player
 {
     pub x: u32,
     pub y: u32,
+    pub direction: Direction,
     pub level: u32,
     pub food: u32,
     pub inventory: HashMap<String, u32>,
 }
 
-pub struct Server
+pub enum Direction
 {
-    pub clients: HashMap<Token, Client>,
-    pub params: ServerParams
+    N,
+    S,
+    E,
+    W,
+}
+
+pub struct Tile {
+    pub players: Vec<Token>,
+    pub resources: HashMap<String, u32>,
+}
+
+pub struct World {
+    pub tiles: Vec<Vec<Tile>>,
 }
 
 pub fn send_response(stream: &mut TcpStream, msg: &str) -> std::io::Result<()>
