@@ -11,11 +11,11 @@ use crate::utils::Server;
 
 pub fn cmd_forward(token: Token, server: &mut Server)
 {
-    let width = server.params.width;
+    let height = server.params.height;
     let client = server.clients.get_mut(&token).unwrap();
     let player = client.player.as_mut().unwrap();
 
-    player.x = (player.x + 1) % width;
+    player.x = (player.x + 1) % height;
 
     let _ = utils::send_response(&mut client.stream, "ok\n");
 }
