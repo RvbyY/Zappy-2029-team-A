@@ -26,6 +26,16 @@ pub struct Client
     pub stream: TcpStream,
     pub buffer: String,
     pub team_name: Option<String>,
+    pub player: Option<Player>,
+}
+
+pub struct Player
+{
+    pub x: u32,
+    pub y: u32,
+    pub level: u32,
+    pub food: u32,
+    pub inventory: HashMap<String, u32>,
 }
 
 pub struct Server

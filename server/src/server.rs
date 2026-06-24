@@ -59,6 +59,7 @@ pub fn start_server(params: ServerParams)
                         stream: client_socket,
                         buffer: String::new(),
                         team_name: None,
+                        player: None,
                     };
 
                     server.clients.insert(token, client);
