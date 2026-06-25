@@ -9,7 +9,21 @@ use crate::utils::Server;
 use mio::Token;
 
 pub fn cmd_ppo(token: Token, server: &mut Server, n: u32) {
+    let mut found = None;
+    for (t, c) in &server.clients {
+        if t.0 as u32 == n {
+            if let Some(player) = &c.player {
+                found = Some(crate::utils::format_ppo(n, player));
+            }
+            break;
+        }
+    }
+
+    let response = match found {
+        Some(res) => res,
+        None => "sbp\n".to_string(),
+    };
+
     let client = server.clients.get_mut(&token).unwrap();
-    let res = format!("ppo {} 0 0 1\n", n);
-    let _ = crate::utils::send_response(&mut client.stream, &res);
+    let _ = crate::utils::send_response(&mut client.stream, &response);
 }

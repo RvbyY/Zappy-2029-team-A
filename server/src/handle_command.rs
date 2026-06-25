@@ -83,21 +83,24 @@ impl GuiCommand {
             "mct" => GuiCommand::Mct,
             "tna" => GuiCommand::Tna,
             "ppo" if parts.len() == 2 => {
-                if let Ok(n) = parts[1].parse::<u32>() {
+                let id_str = parts[1].trim_start_matches('#');
+                if let Ok(n) = id_str.parse::<u32>() {
                     GuiCommand::Ppo(n)
                 } else {
                     GuiCommand::Unknown
                 }
             }
             "plv" if parts.len() == 2 => {
-                if let Ok(n) = parts[1].parse::<u32>() {
+                let id_str = parts[1].trim_start_matches('#');
+                if let Ok(n) = id_str.parse::<u32>() {
                     GuiCommand::Plv(n)
                 } else {
                     GuiCommand::Unknown
                 }
             }
             "pin" if parts.len() == 2 => {
-                if let Ok(n) = parts[1].parse::<u32>() {
+                let id_str = parts[1].trim_start_matches('#');
+                if let Ok(n) = id_str.parse::<u32>() {
                     GuiCommand::Pin(n)
                 } else {
                     GuiCommand::Unknown

@@ -20,7 +20,8 @@ const SERVER_TOKEN: Token = Token(0);
 pub fn start_server(params: ServerParams) {
     let mut poll = Poll::new().unwrap();
     let mut events = Events::with_capacity(128);
-    let mut server = Server { clients: HashMap::new(), params: params.clone(), world: World {tiles: Vec::new(),}, };
+
+    init_world();
 
     let mut next_token = 1;
 
@@ -78,3 +79,72 @@ pub fn start_server(params: ServerParams) {
         }
     }
 }
+
+fn init_world() {
+        let mut tiles = Vec::new();
+    for _ in 0..params.height {
+        let mut row = Vec::new();
+        for _ in 0..params.width {
+            let mut resources = HashMap::new();
+            resources.insert("food".to_string(), 0);
+            resources.insert("linemate".to_string(), 0);
+            resources.insert("deraumere".to_string(), 0);
+            resources.insert("sibur".to_string(), 0);
+            resources.insert("mendiane".to_string(), 0);
+            resources.insert("phiras".to_string(), 0);
+            resources.insert("thystame".to_string(), 0);
+            row.push(crate::utils::Tile {
+                players: Vec::new(),
+                resources,
+            });
+        }
+        tiles.push(row);
+    }
+
+    let mut server = Server {
+        clients: HashMap::new(),
+        params: params.clone(),
+        world: World { tiles },
+    };
+
+    spawn_resources(&mut server);
+}
+
+fn spawn_resources(server: &mut Server) {
+    let width = server.params.width;
+    let height = server.params.height;
+    if width == 0 || height == 0 {
+        return;
+    }
+    let total_tiles = width * height;
+
+    let densities = [
+        ("food", 0.5f64),
+        ("linemate", 0.3f64),
+        ("deraumere", 0.15f64),
+        ("sibur", 0.1f64),
+        ("mendiane", 0.1f64),
+        ("phiras", 0.08f64),
+        ("thystame", 0.05f64),
+    ];
+
+    let mut rng_state = 42u32;
+    let mut lcg = || {
+        rng_state = rng_state.wrapping_mul(1103515245).wrapping_add(12345);
+        rng_state & 0x7fffffff
+    };
+
+    for &(resource, density) in &densities {
+        let total_qty = ((total_tiles as f64) * density).ceil() as u32;
+        for _ in 0..total_qty {
+            let rx = lcg() % width;
+            let ry = lcg() % height;
+            let count = server.world.tiles[ry as usize][rx as usize]
+                .resources
+                .entry(resource.to_string())
+                .or_insert(0);
+            *count += 1;
+        }
+    }
+}
+
