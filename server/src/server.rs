@@ -6,6 +6,7 @@
 */
 
 use crate::handle_client;
+use crate::utils::Egg;
 use crate::utils::World;
 use crate::utils::Server;
 use crate::utils::ServerParams;
@@ -83,6 +84,7 @@ pub fn start_server(params: ServerParams) {
 fn init_world(params: &ServerParams) -> Server
 {
     let mut tiles = Vec::new();
+    let mut eggs = Vec::new();
     for _ in 0..params.height {
         let mut row = Vec::new();
         for _ in 0..params.width {
@@ -105,7 +107,7 @@ fn init_world(params: &ServerParams) -> Server
     let mut server = Server {
         clients: HashMap::new(),
         params: params.clone(),
-        world: World { tiles },
+        world: World { tiles, eggs },
     };
  
     spawn_resources(&mut server);
