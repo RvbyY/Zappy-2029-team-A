@@ -138,3 +138,8 @@ pub fn format_pin(n: u32, player: &Player) -> String {
     )
 }
 
+pub fn send_result(token: Token, server: &mut Server, state: &str)
+{
+    let client = server.clients.get_mut(&token).unwrap();
+    let _ = send_response(&mut client.stream, &format!("{state}\n"));
+}

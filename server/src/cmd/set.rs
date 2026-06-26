@@ -6,24 +6,39 @@
  */
 
 use mio::Token;
-use crate::utils::{Server, send_response};
+use crate::utils::{Server, send_result};
+
+fn remove_from_inventory(server: &mut Server, token: Token, resource: &str) -> bool
+{
+    let client = server.clients.get_mut(&token).unwrap();
+
+    let count = client.player.as_mut().unwrap().inventory.entry(resource.to_string()).or_insert(0);
+
+    if *count == 0 {
+        return false;
+    }
+
+    *count -= 1;
+    true
+}
+
+fn drop_resource(server: &mut Server, x: usize, y: usize, resource: &str)
+{
+    server.world.tiles[y][x].resources.entry(resource.to_string()).and_modify(|v| *v += 1).or_insert(1);
+}
 
 pub fn cmd_set(token: Token, server: &mut Server, obj: String)
 {
+    // get pos player
     let (x, y) = {
         let player = server.clients.get(&token).unwrap().player.as_ref().unwrap();
         (player.x as usize, player.y as usize)
     };
 
-    let client = server.clients.get_mut(&token).unwrap();
-    let inv = client.player.as_mut().unwrap().inventory.entry(obj.clone()).or_insert(0);
-
-    if *inv > 0 {
-        *inv -= 1;
-        server.world.tiles[y][x].resources.entry(obj).and_modify(|v| *v += 1).or_insert(1);
-        let client = server.clients.get_mut(&token).unwrap();
-        let _ = send_response(&mut client.stream, "ok\n");
+    if remove_from_inventory(server, token, &obj) {
+        drop_resource(server, x, y, &obj);
+        send_result(token, server, "ok");
     } else {
-        let _ = send_response(&mut client.stream, "ko\n");
+        send_result(token, server, "ko");
     }
 }

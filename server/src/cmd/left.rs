@@ -6,19 +6,24 @@
  */
 
 use mio::Token;
-use crate::utils::{Server, send_response, Direction};
+use crate::utils::{Server, send_response, Direction, Player};
 
-pub fn cmd_left(token: Token, server: &mut Server)
+fn go_left(player: &mut Player)
 {
-    let client = server.clients.get_mut(&token).unwrap();
-    let player = client.player.as_mut().unwrap();
-
     player.direction = match player.direction {
         Direction::N => Direction::W,
         Direction::W => Direction::S,
         Direction::S => Direction::E,
         Direction::E => Direction::N,
     };
+}
+
+pub fn cmd_left(token: Token, server: &mut Server)
+{
+    let client = server.clients.get_mut(&token).unwrap();
+    let player = client.player.as_mut().unwrap();
+
+    go_left(player);
 
     let _ = send_response(&mut client.stream, "ok\n");
 }
