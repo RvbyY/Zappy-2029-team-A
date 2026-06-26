@@ -19,6 +19,13 @@ private:
     void loadModels();
     void drawFoodModels(const GameState &state, const Magnum::Matrix4 &projection);
 
+    void drawFoodOnTile(
+        const GameState &state,
+        const Magnum::Matrix4 &projection,
+        int tileX,
+        int tileY
+    );
+
     Magnum::Matrix4 foodTransform(
         int tileX,
         int tileY,
