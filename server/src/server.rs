@@ -83,7 +83,7 @@ pub fn start_server(params: ServerParams) {
 fn init_world(params: &ServerParams) -> Server
 {
     let mut tiles = Vec::new();
-    let mut eggs = Vec::new();
+    let eggs = Vec::new();
     for _ in 0..params.height {
         let mut row = Vec::new();
         for _ in 0..params.width {
