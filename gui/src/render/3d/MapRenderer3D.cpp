@@ -6,12 +6,54 @@
 #include <Magnum/GL/Mesh.h>
 #include <Magnum/Math/Color.h>
 
+#include <algorithm>
+#include <cmath>
 #include <vector>
 
 namespace zappy::render3d {
 namespace {
 
-constexpr float GroundHeight = 0.0f;
+constexpr float Pi = 3.14159265358979323846f;
+constexpr float GridLift = 0.025f;
+
+float planetRadius(int width, int height)
+{
+    const float mapSize = static_cast<float>(std::max(width, height));
+    return mapSize * 0.45f + 2.0f;
+}
+
+Magnum::Vector3 spherePoint(
+    float radius,
+    float longitude,
+    float latitude
+)
+{
+    const float cosLatitude = std::cos(latitude);
+
+    return Magnum::Vector3{
+        radius * cosLatitude * std::cos(longitude),
+        radius * std::sin(latitude),
+        radius * cosLatitude * std::sin(longitude)
+    };
+}
+
+Magnum::Vector3 mapPoint(
+    int x,
+    int y,
+    int width,
+    int height,
+    float radius
+)
+{
+    const float longitude =
+        (static_cast<float>(x) / static_cast<float>(width)) * 2.0f * Pi;
+
+    const float latitude =
+        -Pi * 0.5f
+        + (static_cast<float>(y) / static_cast<float>(height)) * Pi;
+
+    return spherePoint(radius, longitude, latitude);
+}
 
 void addLine(
     std::vector<Vertex3D> &vertices,
@@ -47,60 +89,62 @@ void addQuad(
     addTriangle(vertices, a, c, d);
 }
 
-std::vector<Vertex3D> buildFloorVertices(int width, int height)
+std::vector<Vertex3D> buildPlanetSurfaceVertices(int width, int height)
 {
     std::vector<Vertex3D> vertices;
 
     if (width <= 0 || height <= 0)
         return vertices;
 
+    const float radius = planetRadius(width, height);
+
     vertices.reserve(static_cast<std::size_t>(width * height * 6));
 
     for (int y = 0; y < height; ++y) {
         for (int x = 0; x < width; ++x) {
-            const float fx = static_cast<float>(x);
-            const float fz = static_cast<float>(y);
+            const Magnum::Vector3 a = mapPoint(x, y, width, height, radius);
+            const Magnum::Vector3 b = mapPoint(x + 1, y, width, height, radius);
+            const Magnum::Vector3 c = mapPoint(x + 1, y + 1, width, height, radius);
+            const Magnum::Vector3 d = mapPoint(x, y + 1, width, height, radius);
 
-            addQuad(
-                vertices,
-                Magnum::Vector3{fx, GroundHeight, fz},
-                Magnum::Vector3{fx + 1.0f, GroundHeight, fz},
-                Magnum::Vector3{fx + 1.0f, GroundHeight, fz + 1.0f},
-                Magnum::Vector3{fx, GroundHeight, fz + 1.0f}
-            );
+            addQuad(vertices, a, b, c, d);
         }
     }
 
     return vertices;
 }
 
-std::vector<Vertex3D> buildGridVertices(int width, int height)
+std::vector<Vertex3D> buildPlanetGridVertices(int width, int height)
 {
     std::vector<Vertex3D> vertices;
 
     if (width <= 0 || height <= 0)
         return vertices;
 
-    vertices.reserve(static_cast<std::size_t>((width + height + 2) * 2));
+    const float radius = planetRadius(width, height) + GridLift;
 
-    for (int x = 0; x <= width; ++x) {
-        const float fx = static_cast<float>(x);
+    vertices.reserve(static_cast<std::size_t>(
+        (width * height * 2) + ((height + 1) * width * 2)
+    ));
 
-        addLine(
-            vertices,
-            Magnum::Vector3{fx, GroundHeight + 0.01f, 0.0f},
-            Magnum::Vector3{fx, GroundHeight + 0.01f, static_cast<float>(height)}
-        );
+    for (int x = 0; x < width; ++x) {
+        for (int y = 0; y < height; ++y) {
+            addLine(
+                vertices,
+                mapPoint(x, y, width, height, radius),
+                mapPoint(x, y + 1, width, height, radius)
+            );
+        }
     }
 
-    for (int z = 0; z <= height; ++z) {
-        const float fz = static_cast<float>(z);
-
-        addLine(
-            vertices,
-            Magnum::Vector3{0.0f, GroundHeight + 0.01f, fz},
-            Magnum::Vector3{static_cast<float>(width), GroundHeight + 0.01f, fz}
-        );
+    for (int y = 0; y <= height; ++y) {
+        for (int x = 0; x < width; ++x) {
+            addLine(
+                vertices,
+                mapPoint(x, y, width, height, radius),
+                mapPoint(x + 1, y, width, height, radius)
+            );
+        }
     }
 
     return vertices;
@@ -134,12 +178,12 @@ MapRenderer3D::MapRenderer3D(Magnum::Shaders::FlatGL3D &shader)
 
 void MapRenderer3D::draw(const GameState &state, const Magnum::Matrix4 &projection)
 {
-    const std::vector<Vertex3D> floorVertices = buildFloorVertices(
+    const std::vector<Vertex3D> surfaceVertices = buildPlanetSurfaceVertices(
         state.width(),
         state.height()
     );
 
-    const std::vector<Vertex3D> gridVertices = buildGridVertices(
+    const std::vector<Vertex3D> gridVertices = buildPlanetGridVertices(
         state.width(),
         state.height()
     );
@@ -148,8 +192,8 @@ void MapRenderer3D::draw(const GameState &state, const Magnum::Matrix4 &projecti
         _shader,
         projection,
         MeshPrimitive3D::Triangles,
-        floorVertices,
-        Magnum::Color4{0.10f, 0.11f, 0.15f, 1.0f}
+        surfaceVertices,
+        Magnum::Color4{0.08f, 0.10f, 0.15f, 1.0f}
     );
 
     drawMesh(
@@ -157,7 +201,7 @@ void MapRenderer3D::draw(const GameState &state, const Magnum::Matrix4 &projecti
         projection,
         MeshPrimitive3D::Lines,
         gridVertices,
-        Magnum::Color4{0.85f, 0.85f, 0.90f, 1.0f}
+        Magnum::Color4{0.85f, 0.90f, 1.0f, 1.0f}
     );
 }
 

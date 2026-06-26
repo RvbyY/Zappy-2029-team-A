@@ -27,6 +27,11 @@ private:
     void drawEvent() override;
     void viewportEvent(ViewportEvent &event) override;
 
+    void configureRenderer();
+    void clearFrame();
+    bool canRender() const;
+    void draw3DMap();
+
     const GameState *_state;
     bool _isOpen;
 
