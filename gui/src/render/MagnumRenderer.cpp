@@ -3,7 +3,12 @@
 #include <Magnum/GL/DefaultFramebuffer.h>
 #include <Magnum/GL/Renderer.h>
 #include <Magnum/Math/Color.h>
-#include <Magnum/Math/Matrix3.h>
+
+namespace {
+
+constexpr Magnum::Color4 ClearColor{0.06f, 0.06f, 0.09f, 1.0f};
+
+}
 
 MagnumRenderer::MagnumRenderer(const Arguments &arguments)
     : Magnum::Platform::Sdl2Application(
@@ -27,7 +32,7 @@ MagnumRenderer::MagnumRenderer(const Arguments &arguments)
       _camera3D(),
       _mapRenderer3D(_shader3D)
 {
-    Magnum::GL::Renderer::setClearColor(Magnum::Color4{0.06f, 0.06f, 0.09f, 1.0f});
+    configureRenderer();
 }
 
 bool MagnumRenderer::isOpen() const
@@ -46,17 +51,40 @@ void MagnumRenderer::render(const GameState &state)
     redraw();
 }
 
+void MagnumRenderer::configureRenderer()
+{
+    Magnum::GL::Renderer::setClearColor(ClearColor);
+    Magnum::GL::Renderer::enable(Magnum::GL::Renderer::Feature::DepthTest);
+    Magnum::GL::Renderer::enable(Magnum::GL::Renderer::Feature::FaceCulling);
+}
+
+void MagnumRenderer::clearFrame()
+{
+    Magnum::GL::defaultFramebuffer.clear(
+        Magnum::GL::FramebufferClear::Color |
+        Magnum::GL::FramebufferClear::Depth
+    );
+}
+
+bool MagnumRenderer::canRender() const
+{
+    return _state != nullptr && _state->isReady();
+}
+
+void MagnumRenderer::draw3DMap()
+{
+    const Magnum::Matrix4 projection =
+        _camera3D.projection(_state->width(), _state->height(), framebufferSize());
+
+    _mapRenderer3D.draw(*_state, projection);
+}
+
 void MagnumRenderer::drawEvent()
 {
-    Magnum::GL::defaultFramebuffer.clear(Magnum::GL::FramebufferClear::Color);
+    clearFrame();
 
-    if (_state != nullptr && _state->isReady()) {
-
-        const Magnum::Matrix4 projection3D =
-            _camera3D.projection(_state->width(), _state->height(), framebufferSize());
-
-        _mapRenderer3D.draw(*_state, projection3D);
-    }
+    if (canRender())
+        draw3DMap();
 
     swapBuffers();
 }
