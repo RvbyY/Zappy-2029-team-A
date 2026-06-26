@@ -6,7 +6,6 @@
 */
 
 use crate::handle_client;
-use crate::utils::Egg;
 use crate::utils::World;
 use crate::utils::Server;
 use crate::utils::ServerParams;
@@ -152,4 +151,3 @@ fn spawn_resources(server: &mut Server) {
         }
     }
 }
-
