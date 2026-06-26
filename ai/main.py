@@ -1,10 +1,34 @@
 import argparse
 
-from network.client import ZappyClient
+from ai.network.client import ZappyClient
+from ai.strategy.agent import Agent
 
-parser = argparse.ArgumentParser(add_help=False)
-parser.add_argument("-p", type=int, required=True)
-parser.add_argument("-n", required=True)
-parser.add_argument("-h", dest="host", default="localhost")
-parser.add_argument("--help", action="help")
-args = parser.parse_args()
+def parse_args():
+    parser = argparse.ArgumentParser(add_help=False)
+
+    parser.add_argument("-p", type=int, required=True)
+    parser.add_argument("-n", required=True)
+    parser.add_argument("-h", dest="host", default="localhost")
+    parser.add_argument("--help", action="help")
+
+    return parser.parse_args()
+
+def main():
+    args = parse_args()
+
+    # if args.help is not None:
+    #     print("USAGE: ./zappy_ai -p port -n name -h machine")
+    #     return
+
+    client = ZappyClient(
+        host=args.host,
+        port=args.p,
+        team=args.n
+    )
+    client.connect()
+
+    agent = Agent(client)
+    agent.run()
+
+if __name__ == '__main__':
+    main()

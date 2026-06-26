@@ -1,6 +1,7 @@
 import socket
 
 class ZappyClient:
+
     def __init__(self, host, port, team):
         self.host = host
         self.port = port
@@ -9,10 +10,6 @@ class ZappyClient:
         self.file = None
 
     def connect(self):
-
-        if self.host == "--help":
-            print(f"USAGE: ./zappy_gui -p port -h machine")
-            return
 
         self.sock = socket.create_connection((self.host, self.port))
         self.file = self.sock.makefile("rwb", buffering=0)
@@ -25,16 +22,21 @@ class ZappyClient:
         client_num = self.read_line()
         world_size = self.read_line()
 
-        print(f"Connected: slots={client_num}, map={world_size}")
+        print(f"[AI] Connected: slots={client_num}, map={world_size}")
 
     def send_raw(self, text):
-        self.file.write((text + "\n").encode())
+        message = f"{text}\r\n"
+        print(f"[AI -> SERVER] {text}")
+        self.sock.sendall(message.encode())
 
     def read_line(self):
         line = self.file.readline()
         if not line:
             raise RuntimeError("Server closed connection")
-        return line.decode().strip()
+
+        decoded = line.decode().strip()
+        print(f"[SERVER -> AI] {decoded}")  
+        return decoded
 
     def command(self, cmd):
         self.send_raw(cmd)
@@ -54,4 +56,3 @@ class ZappyClient:
                 continue
 
             return response
-        

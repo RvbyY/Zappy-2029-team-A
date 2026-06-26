@@ -23,3 +23,4 @@ def parse_look(text):
         tiles.append(content.split() if content else [])
 
     return tiles
+        
