@@ -20,6 +20,9 @@ class State:
         self.last_broadcast = None
         self.players_on_tile = 1
         self.messages = []
+        self.is_leader = False
+        self.waiting_for_players = False
+        self.broadcast_cooldown = 0
 
     def food(self):
         return self.inventory.get("food", 0)

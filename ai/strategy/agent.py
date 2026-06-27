@@ -38,7 +38,7 @@ class Agent:
         for msg in self.state.messages:
             direction, content = parse_broadcast(msg)
             
-            if content == "LEVELUP":
+            if content == "LEVELUP" and direction != 0:
                 self.state.current_goal = "GATHER_PLAYERS"
                 self.state.last_broadcast = direction
                 self.state.messages.clear()
@@ -52,6 +52,13 @@ class Agent:
 
         if resource:
             self.state.current_goal = f"SEARCH_{resource.upper()}"
+            return
+
+        required_players = self.state.requirements().get("players", 1)
+        players_here = self.state.player_count_on_tile()
+
+        if players_here < required_players:
+            self.state.current_goal = "CALL_PLAYERS"
             return
 
         self.state.current_goal = "LEVEL_UP"
@@ -127,7 +134,8 @@ class Agent:
         response = self.client.command("Incantation")
         if "Current level:" in response:
             self.state.level += 1
-        
+            self.state.broadcast_cooldown = 0
+
         print("Incantation:", response)
 
     def collect_current_tile(self):
@@ -142,29 +150,34 @@ class Agent:
         print(f"Following broadcast direction {direction}")
 
         if direction == 0:
+            print("Arrived at leader, waiting")
+            self.client.command("Look")
             return
 
         if direction == 1:
             self.client.command("Forward")
-        elif direction == 2:
-            self.client.command("Forward")
-            self.client.command("Left")
-        elif direction == 3:
-            self.client.command("Left")
-            self.client.command("Forward")
-        elif direction == 4:
+        elif direction in [2, 3, 4]:
             self.client.command("Left")
             self.client.command("Forward")
         elif direction == 5:
             self.client.command("Left")
             self.client.command("Left")
             self.client.command("Forward")
-        elif direction == 6:
+        elif direction in [6, 7, 8]:
             self.client.command("Right")
             self.client.command("Forward")
-        elif direction == 7:
-            self.client.command("Right")
-            self.client.command("Forward")
-        elif direction == 8:
-            self.client.command("Forward")
-            self.client.command("Right")
+        
+    def call_players(self):
+        required_players = self.state.requirements().get("players", 1)
+        players_here = self.state.player_count_on_tile()
+
+        print(f"Players here: {players_here}/{required_players}")
+
+        if self.state.broadcast_cooldown <= 0:
+            print("Calling players for incantation")
+            self.client.command("Broadcast LEVELUP")
+            self.state.broadcast_cooldown = 5
+        else:
+            self.state.broadcast_cooldown -= 1
+
+        self.client.command("Look")
