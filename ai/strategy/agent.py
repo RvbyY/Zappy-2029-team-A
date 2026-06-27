@@ -1,5 +1,7 @@
-from ai.strategy.parser import parse_inventory, parse_look
+from ai.strategy.parser import parse_inventory, parse_look, parse_broadcast
 from ai.strategy.state import State
+from ai.strategy.vision import tile_to_position
+
 
 class Agent:
 
@@ -24,27 +26,44 @@ class Agent:
         raw_look = self.client.command("Look")
         self.state.visible_tiles = parse_look(raw_look)
 
+        self.state.messages.extend(self.client.messages)
+        self.client.messages.clear()
+
         print("Inventory:", self.state.inventory)
         print("Vision:", self.state.visible_tiles)
+        print("Messages:", self.state.messages)
 
     def think(self):
+
+        for msg in self.state.messages:
+            direction, content = parse_broadcast(msg)
+            
+            if content == "LEVELUP":
+                self.state.current_goal = "GATHER_PLAYERS"
+                self.state.last_broadcast = direction
+                self.state.messages.clear()
+                return
 
         if self.state.food() < 10:
             self.state.current_goal = "SEARCH_FOOD"
             return
 
-        missing = self.state.missing_resources()
-        if missing:
-            self.state.current_goal = f"SEARCH_{missing[0].upper()}"
+        resource = self.state.next_missing_resource()
+
+        if resource:
+            self.state.current_goal = f"SEARCH_{resource.upper()}"
             return
 
         self.state.current_goal = "LEVEL_UP"
-
         print("Goal:", self.state.current_goal)
 
     def act(self):
         current_tile = self.state.current_tile()
         goal = self.state.current_goal
+
+        if goal == "GATHER_PLAYERS":
+            self.follow_broadcast()
+            return
 
         if current_tile:
             self.collect_current_tile()
@@ -80,26 +99,22 @@ class Agent:
         self.client.command("Forward")
 
     def move_to_tile(self, tile_index):
-        if tile_index == 0:
-            return
+        x, y = tile_to_position(tile_index)
 
-        if tile_index == 1:
+        if x < 0:
             self.client.command("Left")
-            self.client.command("Forward")
-        elif tile_index == 2:
-            self.client.command("Forward")
-        elif tile_index == 3:
+        elif x > 0:
             self.client.command("Right")
-            self.client.command("Forward")
-        else:
+
+        for _ in range(y):
             self.client.command("Forward")
 
     def level_up(self):
-
         if not self.state.ready_for_incantation():
             return
 
         requirements = self.state.requirements()
+
         for resource, amount in requirements.items():
             if resource == "players":
                 continue
@@ -107,7 +122,12 @@ class Agent:
         for _ in range(amount):
             self.client.command(f"Set {resource}")
 
+        self.client.command("Broadcast LEVELUP")
+
         response = self.client.command("Incantation")
+        if "Current level:" in response:
+            self.state.level += 1
+        
         print("Incantation:", response)
 
     def collect_current_tile(self):
@@ -116,3 +136,35 @@ class Agent:
         for resource in current_tile:
             print(f"Taking {resource}")
             self.client.command(f"Take {resource}")
+
+    def follow_broadcast(self):
+        direction = self.state.last_broadcast
+        print(f"Following broadcast direction {direction}")
+
+        if direction == 0:
+            return
+
+        if direction == 1:
+            self.client.command("Forward")
+        elif direction == 2:
+            self.client.command("Forward")
+            self.client.command("Left")
+        elif direction == 3:
+            self.client.command("Left")
+            self.client.command("Forward")
+        elif direction == 4:
+            self.client.command("Left")
+            self.client.command("Forward")
+        elif direction == 5:
+            self.client.command("Left")
+            self.client.command("Left")
+            self.client.command("Forward")
+        elif direction == 6:
+            self.client.command("Right")
+            self.client.command("Forward")
+        elif direction == 7:
+            self.client.command("Right")
+            self.client.command("Forward")
+        elif direction == 8:
+            self.client.command("Forward")
+            self.client.command("Right")
