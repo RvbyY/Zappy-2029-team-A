@@ -115,9 +115,9 @@ target_compile_options(zappy_gui PRIVATE
 
 target_link_libraries(zappy_gui PRIVATE
     Corrade::Main
+    Corrade::PluginManager
     Magnum::Application
     Magnum::GL
     Magnum::Shaders
     Magnum::Trade
-    MagnumPlugins::GltfImporter
 )
