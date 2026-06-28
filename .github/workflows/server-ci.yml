@@ -1,0 +1,29 @@
+name: SERVER CI
+
+on:
+    workflow_dispatch:
+    push:
+        branches:
+            - main
+            - "feat/**"
+            - "ci/**"
+    pull_request:
+        branches:
+            - main
+
+env:
+    DEPS_DIR: ${{ github.workspace }}/.ci-deps
+    BUILD_TYPE: Release
+
+jobs:
+    server-build:
+        name: Build SERVER
+        runs-on: ubuntu-24.04
+
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+
+            - name: Build SERVER
+              run: |
+                make zappy_server
