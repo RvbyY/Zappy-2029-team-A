@@ -7,6 +7,7 @@
 
 use mio::Token;
 use crate::utils::{Server, send_result, notify_gui, resource_to_index};
+use crate::timers;
 
 fn remove_from_inventory(server: &mut Server, token: Token, resource: &str) -> bool
 {
@@ -40,7 +41,11 @@ fn notify_set_to_gui(token: Token, server: &mut Server, obj: String)
 
 pub fn cmd_set(token: Token, server: &mut Server, obj: String)
 {
-    // get pos player
+    if !timers::can_act(token, server) {
+        send_result(token, server, "ko");
+        return;
+    }
+
     let (x, y) = {
         let player = server.clients.get(&token).unwrap().player.as_ref().unwrap();
         (player.x as usize, player.y as usize)
@@ -50,6 +55,7 @@ pub fn cmd_set(token: Token, server: &mut Server, obj: String)
         drop_resource(server, x, y, &obj);
         send_result(token, server, "ok");
         notify_set_to_gui(token, server, obj);
+        timers::start_action(token, server, 7);
     } else {
         send_result(token, server, "ko");
     }

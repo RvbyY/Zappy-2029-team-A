@@ -6,6 +6,7 @@
  */
 
 use mio::Token;
+use crate::timers;
 use crate::utils::{Server, send_result, notify_gui, compute_direction};
 
 fn broadcast_to_others(token: Token, server: &mut Server, msg: &str, ex: u32, ey: u32)
@@ -29,6 +30,11 @@ fn broadcast_to_others(token: Token, server: &mut Server, msg: &str, ex: u32, ey
 
 pub fn cmd_broadcast(token: Token, server: &mut Server, msg: String)
 {
+    if !timers::can_act(token, server) {
+        send_result(token, server, "ko");
+        return;
+    }
+    
     let (n, ex, ey) = {
         let client = server.clients.get(&token).unwrap();
         let player = client.player.as_ref().unwrap();
@@ -37,5 +43,6 @@ pub fn cmd_broadcast(token: Token, server: &mut Server, msg: String)
 
     broadcast_to_others(token, server, &msg, ex, ey);
     send_result(token, server, "ok");
+    timers::start_action(token, server, 7);
     notify_gui(&mut server.clients, &format!("pbc #{} {}\n", n, msg));
 }

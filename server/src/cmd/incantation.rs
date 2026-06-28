@@ -6,7 +6,8 @@
  */
 
 use mio::Token;
-use crate::utils::{send_response, Player, Server, notify_gui};
+use crate::utils::{Player, Server, send_result, notify_gui};
+use crate::timers;
 use std::collections::HashMap;
 
 struct IncantationRequirements {
@@ -71,9 +72,7 @@ fn check_incantation(server: &Server, player: &Player) -> bool {
 
 fn incantation_failed(token: Token, server: &mut Server, player: &Player)
 {
-    if let Some(client) = server.clients.get_mut(&token) {
-        send_response(&mut client.stream, "ko\n").unwrap_or_default();
-    }
+    send_result(token, server, "ko");
     notify_gui(&mut server.clients, &format!("pie {} {} 0\n", player.x, player.y));
 }
 
@@ -100,22 +99,22 @@ fn start_incantation(token: Token, server: &mut Server, player: &Player)
     let pic = build_pic_message(player, &participants);
     notify_gui(&mut server.clients, &pic);
 
-    if let Some(client) = server.clients.get_mut(&token) {
-        let response = format!("Elevation underway\nCurrent level: {}\n", player.level + 1);
-        send_response(&mut client.stream, &response).unwrap_or_default();
-    }
-
+    send_result(token, server, "Elevation underway");
     notify_gui(&mut server.clients, &format!("pie {} {} 1\n", player.x, player.y));
+    timers::start_action(token, server, 300);
 }
 
 pub fn cmd_incantation(token: Token, server: &mut Server)
 {
+    if !timers::can_act(token, server) {
+        send_result(token, server, "ko");
+        return;
+    }
+
     let player = match server.clients.get(&token).and_then(|c| c.player.clone()) {
         Some(p) => p,
         None => {
-            if let Some(client) = server.clients.get_mut(&token) {
-                send_response(&mut client.stream, "ko\n").unwrap_or_default();
-            }
+            send_result(token, server, "ko");
             return;
         }
     };

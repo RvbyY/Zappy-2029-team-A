@@ -7,6 +7,7 @@
 
 use mio::Token;
 use crate::utils::{Server, send_result, notify_gui, resource_to_index};
+use crate::timers;
 
 fn take_resource(server: &mut Server, x: usize, y: usize, resource: &str) -> bool
 {
@@ -36,7 +37,11 @@ fn add_to_inventory(server: &mut Server, token: Token, resource: &str)
 
 pub fn cmd_take(token: Token, server: &mut Server, obj: String)
 {
-    // get pos player
+    if !timers::can_act(token, server) {
+        send_result(token, server, "ko");
+        return;
+    }
+
     let (x, y, n) = {
         let player = server.clients.get(&token).unwrap().player.as_ref().unwrap();
         (player.x as usize, player.y as usize, token.0 as u32)
@@ -47,6 +52,7 @@ pub fn cmd_take(token: Token, server: &mut Server, obj: String)
         send_result(token, server, "ok");
         let i = resource_to_index(&obj);
         notify_gui(&mut server.clients, &format!("pgt #{} {}\n", n, i));
+        timers::start_action(token, server, 7);
     } else {
         send_result(token, server, "ko");
     }

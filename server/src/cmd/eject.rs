@@ -6,7 +6,8 @@
  */
 
 use mio::Token;
-use crate::utils::{Direction, Server, format_ppo, send_response, notify_gui, compute_direction};
+use crate::utils::{Direction, Server, format_ppo, send_response, notify_gui, compute_direction, send_result};
+use crate::timers;
 
 fn get_player_infos(token: Token, server: &Server) -> (u32, u32, Direction)
 {
@@ -61,12 +62,16 @@ fn notify_players(server: &mut Server, players: &[Token], ejector_x: u32, ejecto
 
 pub fn cmd_eject(token: Token, server: &mut Server)
 {
+    if !timers::can_act(token, server) {
+        send_result(token, server, "ko");
+        return;
+    }
+
     let (x, y, direction) = get_player_infos(token, server);
     let others: Vec<Token> = server.world.tiles[y as usize][x as usize].players.iter().filter(|&&t| t != token).copied().collect();
 
     if others.is_empty() {
-        let client = server.clients.get_mut(&token).unwrap();
-        let _ = send_response(&mut client.stream, "ko\n");
+        send_result(token, server, "ko");
         return;
     }
 
@@ -78,8 +83,8 @@ pub fn cmd_eject(token: Token, server: &mut Server)
     move_players(server, &others, x, y, new_x, new_y);
     notify_players(server, &others, x, y, &direction);
 
-    let client = server.clients.get_mut(&token).unwrap();
-    let _ = send_response(&mut client.stream, "ok\n");
+    send_result(token, server, "ok");
+    timers::start_action(token, server, 7);
 
     // notify gui
     for other_token in &others {

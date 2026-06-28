@@ -9,6 +9,7 @@ use mio::Token;
 use mio::net::TcpStream;
 use std::collections::HashMap;
 use std::io::Write;
+use std::time::SystemTime;
 
 #[derive(Clone, Debug)]
 pub struct ServerParams
@@ -36,6 +37,8 @@ pub struct Client {
     pub team_name: Option<String>,
     pub player: Option<Player>,
     pub is_gui: bool,
+    pub action_deadline: Option<SystemTime>,
+    pub hunger_check_deadline: SystemTime,
 }
 
 #[derive(Debug, Clone)]
@@ -53,6 +56,7 @@ pub struct Player
     pub level: u32,
     pub food: u32,
     pub inventory: HashMap<String, u32>,
+    pub last_food_update: SystemTime,
 }
 
 #[derive(Debug)]
@@ -95,8 +99,8 @@ impl Direction {
     }
 }
 
-pub fn send_response(stream: &mut TcpStream, response: &str) -> std::io::Result<()> {
-    
+pub fn send_response(stream: &mut TcpStream, response: &str) -> std::io::Result<()>
+{
     stream.write_all(response.as_bytes())
 }
 
@@ -159,6 +163,7 @@ pub fn send_result(token: Token, server: &mut Server, state: &str)
     let client = server.clients.get_mut(&token).unwrap();
     let _ = send_response(&mut client.stream, &format!("{state}\n"));
 }
+
 
 pub fn resource_to_index(name: &str) -> u32
 {
