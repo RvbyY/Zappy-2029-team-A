@@ -72,8 +72,23 @@ fn format_str(server: &Server, vision: &Vec<Vec<(u32, u32)>>) -> String
                 result.push_str(", ");
             }
             first = false;
-            let tile = &server.world.tiles[*y as usize][*x as usize];
+
             let mut items = String::new();
+
+            // add player
+            for client in server.clients.values() {
+                if let Some(player) = &client.player {
+                    if player.x == *x && player.y == *y {
+                        if !items.is_empty() {
+                            items.push(' ');
+                        }
+                        items.push_str("player");
+                    }
+                }
+            }
+
+            // add resources
+            let tile = &server.world.tiles[*y as usize][*x as usize];
             for _ in &tile.players {
                 if !items.is_empty() {
                     items.push(' ');
@@ -88,6 +103,7 @@ fn format_str(server: &Server, vision: &Vec<Vec<(u32, u32)>>) -> String
                     items.push_str(res);
                 }
             }
+
             result.push_str(&items);
         }
     }
