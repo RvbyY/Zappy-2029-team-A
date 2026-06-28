@@ -30,7 +30,7 @@ jobs:
 
             - name: Run SERVER fmt check
               run: |
-                cd server \
+                cd server
                 cargo fmt
 
             - name: Build SERVER
